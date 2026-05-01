@@ -58,13 +58,13 @@ streamlit run dashboard/app.py
 
 ## Equipo
 
-Desarrollado como proyecto integrado de Ciencia de Datos.
 
-| | Integrantes |
+| Rol | Integrante |
+| :--- | :--- |
+| Desarrollador | Josue David (apellidos) |
+| Desarrollador | Daniel Andres Jimenez Povea |
+| Desarrollador | Carlos Manuel Toro Torres |
 
-| | Josue David (apellidos)
-| | Daniel Andres Jimenez Povea 
-| | Carlos Manuel Toro Torres 
 
 ---
 
