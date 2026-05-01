@@ -58,9 +58,10 @@ streamlit run dashboard/app.py
 
 ## Equipo
 
-Desarrollado en la **Universidad Nacional de Ingeniería (UNI)** como proyecto integrado de Ciencia de Datos.
+Desarrollado como proyecto integrado de Ciencia de Datos.
 
-| | Integrante |
+| | Integrantes |
+
 | | Josue David (apellidos)
 | | Daniel Andres Jimenez Povea 
 | | Carlos Manuel Toro Torres 
