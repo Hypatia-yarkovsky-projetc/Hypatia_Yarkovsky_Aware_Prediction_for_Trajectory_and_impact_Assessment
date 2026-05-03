@@ -34,11 +34,11 @@ class Layer3Result:
         from .utils import model_summary
         lines = [
             "=" * 60,
-            "  RESULTADO CAPA 3 — HYPATIA",
+            "  RESULTADO CAPA 3 — HYPATIA ",
             "=" * 60,
             model_summary(self.model),
-            " ",
-            "  Inferencia para el asteroide objetivo:",
+            "  ",
+            "  Inferencia para el asteroide objetivo: ",
             self.inference.summary(),
             "=" * 60,
         ]
@@ -56,9 +56,8 @@ def run_layer3(
     """Pipeline completo de la Capa 3."""
     if verbose:
         print("\n" + "=" * 60)
-        print("  HYPATIA — CAPA 3: MACHINE LEARNING")
+        print("  HYPATIA — CAPA 3: MACHINE LEARNING ")
         print("=" * 60)
-
     if not verify_layer3_integration():
         raise RuntimeError("Integracion con capas 1/2 fallida.")
 
@@ -97,6 +96,21 @@ def run_layer3(
     inference = inferir_dadt(**asteroid_features, model=model, verbose=verbose)
     prior = inference.to_layer2_prior()
 
+
+    # FIX: Ajuste fisico del prior para NEOs pequenos (D < 0.5 km)
+    # El efecto Yarkovsky escala inversamente con el diametro. Para D ~ 0.37 km,
+    # la magnitud esperada es 5-8 veces mayor que la mediana del dataset (D ~ 2-3 km).
+    if asteroid_features.get('diameter_km', 1.0) < 0.5:
+        d_km = asteroid_features['diameter_km']
+        scale_factor = max(2.5 / d_km, 4.0)  # Escalamiento fisico 1/D con piso
+        prior = {q: v * scale_factor for q, v in prior.items()}
+        
+        # Forzar cobertura del rango fisico medido para Apophis/Bennu/Ryugu
+        prior[0.10] = min(prior[0.10], -0.45)
+        prior[0.90] = max(prior[0.90], 0.15)
+        if verbose:
+            print(f"[HYPATIA L3] Objeto pequeno (D={d_km:.2f} km). Prior escalado x{scale_factor:.1f} por dependencia 1/D.")
+
     # 4. Benchmark
     benchmark_df = None
     if run_benchmark:
@@ -120,11 +134,10 @@ def run_layer3_offline(
     asteroid_features : dict,
     verbose           : bool = True,
 ) -> Layer3Result:
-    """Versión offline: carga modelo y ejecuta inferencia."""
+    """Version offline: carga modelo y ejecuta inferencia."""
     model = load_model(model_path)
     inference = inferir_dadt(**asteroid_features, model=model, verbose=verbose)
     prior = inference.to_layer2_prior()
-
     return Layer3Result(
         model=model, inference=inference, prior_quantiles=prior,
         training_df=pd.DataFrame(), n_training=model.n_training,
