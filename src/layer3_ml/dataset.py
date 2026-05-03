@@ -38,22 +38,44 @@ def download_yarkovsky_sbdb(
     save_path: Optional[str] = None,
     timeout: int = 30,
 ) -> pd.DataFrame:
-    """Descarga asteroides con parámetro Yarkovsky (A2) medido desde JPL SBDB."""
+    """
+    Descarga asteroides con parámetro Yarkovsky (A2) medido desde JPL SBDB.
+    
+    Prioridad:
+    1. Archivo local data/raw/yarkovsky_full_jpl.csv (si existe)
+    2. API de JPL SBDB
+    3. Dataset de respaldo embebido
+    """
+    # ← PRIORIDAD 1: Buscar archivo local descargado manualmente
+    local_path = Path("data/raw/yarkovsky_full_jpl.csv")
+    
+    if local_path.exists():
+        print(f"[HYPATIA L3] ✓ Usando dataset local: {local_path}")
+        print(f"  Fecha de modificación: {local_path.stat().st_mtime}")
+        df = pd.read_csv(local_path)
+        print(f"[HYPATIA L3] Dataset cargado: {len(df)} asteroides")
+        return df
+    
+    # ← PRIORIDAD 2: Intentar descargar desde API
     print("[HYPATIA L3] Descargando dataset Yarkovsky desde JPL SBDB...")
-
+    
     fields = (
         "spkid,full_name,neo,pha,class,H,albedo,diameter,"
         "rot_per,spec_T,spec_B,a,e,w,i,om,ma,"
         "A2,dA2"
     )
-
+    
     params = {
-        "fields"   : fields,
-        "sb-kind"  : "a",
-        "sb-cdata" : json.dumps({"AND": [{"field": "A2", "value": "0", "op": "ne"}]}),
-        "limit"    : 600,
+        "fields": fields,
+        "sb-kind": "a",
+        "sb-cdata": json.dumps({
+            "AND": [
+                {"field": "A2", "value": "0", "op": "ne"}
+            ]
+        }),
+        "limit": 600,
     }
-
+    
     try:
         resp = requests.get(JPL_SBDB_URL, params=params, timeout=timeout)
         resp.raise_for_status()
@@ -62,27 +84,28 @@ def download_yarkovsky_sbdb(
         print(f"[HYPATIA L3] Error de red: {e}")
         print("[HYPATIA L3] Cargando dataset de respaldo embebido...")
         return _get_fallback_dataset()
-
+    
     if "data" not in data or len(data["data"]) == 0:
         print("[HYPATIA L3] Sin resultados. Usando dataset de respaldo.")
         return _get_fallback_dataset()
-
+    
     col_names = [f["name"] for f in data["fields"]]
     df = pd.DataFrame(data["data"], columns=col_names)
-
+    
+    # Conversiones de tipo
     numeric_cols = ["H", "albedo", "diameter", "rot_per", "a", "e", "w",
                     "i", "om", "ma", "A2", "dA2"]
     for col in numeric_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
-
+    
     print(f"[HYPATIA L3] Descargados {len(df)} asteroides con A2 medido.")
-
+    
     if save_path:
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(save_path, index=False)
         print(f"[HYPATIA L3] Guardado: {save_path}")
-
+    
     return df
 
 def _get_fallback_dataset() -> pd.DataFrame:

@@ -11,6 +11,7 @@ astroquery>=0.4.7
 xgboost>=2.0.0,<2.1.0
 scikit-learn>=1.4.0,<1.5.0
 joblib>=1.4.0
+tqdm>=4.67.3
 # ── Series de tiempo y estadística ───────────────────────────────────────
 statsmodels>=0.14.0,<0.15.0
 # ── Visualización ─────────────────────────────────────────────────────────

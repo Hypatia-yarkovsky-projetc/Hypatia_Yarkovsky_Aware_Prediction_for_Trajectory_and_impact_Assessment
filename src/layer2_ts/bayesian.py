@@ -1,118 +1,78 @@
 """
 bayesian.py
-Actualización bayesiana analítica (conjugación Gaussiana).
-Combina Prior (Capa 3) y Likelihood (Capa 2).
+Actualización bayesiana para HYPATIA Capa 2.
+Combina prior ML (Capa 3) con verosimilitud de regresión (OLS/HAC/STL).
+Incluye límite físico obligatorio para evitar explosión numérica por ruido.
 """
 import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
-from scipy.stats import norm
 from .regression import RegressionResult
 
 @dataclass
 class GaussianPrior:
-    """Prior gaussiano derivado de cuantiles ML."""
-    mean: float; std: float; source: str = "ml_quantile"
+    """Distribución gaussiana N(μ, σ²) para da/dt."""
+    mean: float
+    std: float
+    source: str = "unknown"
 
     @classmethod
-    def from_quantiles(cls, quantiles: dict, source: str = "ml_quantile") -> "GaussianPrior":
-        mu = float(quantiles[0.50])
-        if 0.10 in quantiles and 0.90 in quantiles:
-            sigma = (float(quantiles[0.90]) - float(quantiles[0.10])) / (2 * 1.2816)
-        elif 0.25 in quantiles and 0.75 in quantiles:
-            sigma = (float(quantiles[0.75]) - float(quantiles[0.25])) / (2 * 0.6745)
-        else:
-            sigma = abs(mu) * 0.5
-        return cls(mean=mu, std=max(sigma, 1e-6), source=source)
+    def from_quantiles(cls, quantiles: dict, min_std: float = 0.05, source: str = "unknown") -> "GaussianPrior":
+        q50 = quantiles[0.50]
+        iqr = quantiles[0.75] - quantiles[0.25]
+        std = max(iqr / 1.349, min_std)
+        return cls(mean=q50, std=std, source=source)
 
-    @classmethod
-    def uninformative(cls) -> "GaussianPrior":
-        return cls(mean=0.0, std=1e6, source="uninformative")
+    def summary(self) -> str:
+        return f"Prior({self.source}): μ={self.mean:+.4f}, σ={self.std:.4f} AU/My"
 
-    def pdf(self, x: np.ndarray) -> np.ndarray:
-        return norm.pdf(x, self.mean, self.std)
-
-    def sample(self, n: int, seed: int = 42) -> np.ndarray:
-        return np.random.default_rng(seed).normal(self.mean, self.std, n)
 
 @dataclass
 class BayesianPosterior:
-    """Posterior resultante de la actualización."""
-    mean: float; std: float; ci_lower: float; ci_upper: float
-    prior: GaussianPrior; likelihood: RegressionResult
-    weight_prior: float; weight_likelihood: float
-    samples: np.ndarray = field(default_factory=lambda: np.array([]))
-    n_samples: int = 0
-
-    @property
-    def ci_width(self) -> float:
-        return self.ci_upper - self.ci_lower
-
-    def sample_dadt(self, n: int = 1000, seed: int = 42) -> np.ndarray:
-        return np.random.default_rng(seed).normal(self.mean, self.std, n)
-
-    def to_layer1_input(self) -> dict:
-        return {
-            "dadt_mean": self.mean, "dadt_std": self.std,
-            "ci_lower": self.ci_lower, "ci_upper": self.ci_upper,
-            "samples": self.sample_dadt(200),
-        }
+    """Resultado de la actualización bayesiana."""
+    mean: float
+    std: float
+    prior: GaussianPrior
+    data_mean: float = 0.0
+    data_std: float = 0.0
+    source: str = "bayes"
 
     def summary(self) -> str:
-        return (
-            f"Posterior: μ={self.mean:+.4f} AU/My, σ={self.std:.4f} | "
-            f"Peso Prior: {self.weight_prior:.0%} | "
-            f"Peso Datos: {self.weight_likelihood:.0%} | "
-            f"IC 95%: [{self.ci_lower:+.3f}, {self.ci_upper:+.3f}]"
-        )
+        return f"Posterior({self.source}): μ={self.mean:+.4f}, σ={self.std:.4f} AU/My"
 
-def bayesian_update(prior: GaussianPrior, likelihood: RegressionResult, n_samples: int = 2000, alpha: float = 0.05) -> BayesianPosterior:
-    """Actualización bayesiana gaussiana conjugada."""
-    tau_prior = 1.0 / (prior.std ** 2)
-    tau_data = 1.0 / (likelihood.std_error ** 2) if likelihood.std_error > 1e-10 else 0.0
-    tau_post = tau_prior + tau_data
+
+def full_bayesian_estimation(reg_result: RegressionResult, ml_quantiles: dict, verbose: bool = True) -> BayesianPosterior:
+    """Actualización bayesiana blindada con límite físico obligatorio."""
+    prior = GaussianPrior.from_quantiles(ml_quantiles, source="ml_xgboost")
     
-    mu_post = (tau_prior * prior.mean + tau_data * likelihood.dadt_au_my) / tau_post
-    std_post = 1.0 / np.sqrt(tau_post)
+    data_mean = float(reg_result.dadt_au_my)
+    data_std  = max(float(reg_result.std_error), 0.05)
     
-    z = norm.ppf(1 - alpha / 2)
+    # 🔒 LÍMITE FÍSICO OBLIGATORIO
+    # Yarkovsky en NEOs reales nunca supera ±1.0 AU/My.
+    # Valores mayores indican que OLS ajustó ruido/offset, no la tendencia física.
+    PHYSICAL_LIMIT = 1.0  # AU/My
+    if abs(data_mean) > PHYSICAL_LIMIT:
+        if verbose:
+            print(f"[HYPATIA L2] ⚠ Regresión OLS arrojó valor no físico ({data_mean:.2f} AU/My). "
+                  f"Clipeando a ±{PHYSICAL_LIMIT} y penalizando confianza.")
+        data_mean = float(np.clip(data_mean, -PHYSICAL_LIMIT, PHYSICAL_LIMIT))
+        data_std = max(data_std, 0.20)
+        
+    w_prior = 1.0 / (prior.std ** 2)
+    w_data  = 1.0 / (data_std ** 2)
     
+    post_mean = (prior.mean * w_prior + data_mean * w_data) / (w_prior + w_data)
+    post_std  = np.sqrt(1.0 / (w_prior + w_data))
+    
+    if verbose:
+        print(f"Posterior: μ={post_mean:+.4f} AU/My, σ={post_std:.4f} | "
+              f"Peso Prior: {w_prior/(w_prior+w_data)*100:.0f}% | "
+              f"Peso Datos: {w_data/(w_prior+w_data)*100:.0f}% | "
+              f"IC 95%: [{post_mean-1.96*post_std:+.3f}, {post_mean+1.96*post_std:+.3f}]")
+              
     return BayesianPosterior(
-        mean=float(mu_post), std=float(std_post),
-        ci_lower=float(mu_post - z * std_post), ci_upper=float(mu_post + z * std_post),
-        prior=prior, likelihood=likelihood,
-        weight_prior=float(tau_prior / tau_post), weight_likelihood=float(tau_data / tau_post),
-        samples=np.random.default_rng(42).normal(mu_post, std_post, n_samples),
-        n_samples=n_samples,
+        mean=post_mean, std=post_std, prior=prior,
+        data_mean=data_mean, data_std=data_std,
+        source=f"{reg_result.method}+bayes"
     )
-
-def full_bayesian_estimation(regression_result: RegressionResult, ml_quantiles: Optional[dict] = None, n_samples: int = 2000, verbose: bool = True) -> BayesianPosterior:
-    """Función principal de estimación bayesiana."""
-    if ml_quantiles is not None:
-        prior = GaussianPrior.from_quantiles(ml_quantiles, source="ml_xgboost")
-    else:
-        prior = GaussianPrior.uninformative()
-        if verbose: print("[HYPATIA L2] Prior no informativo.")
-        
-    posterior = bayesian_update(prior, regression_result, n_samples)
-    if verbose: print(posterior.summary())
-    return posterior
-
-def compare_posteriors_by_arc(full_series, ml_quantiles: dict, n_obs_list: list[int], true_dadt: Optional[float] = None) -> list[dict]:
-    """Compara posterior para distintos arcos."""
-    from .residuals import simulate_short_arc
-    from .regression import estimate_ols_hac
-    
-    results, prior = [], GaussianPrior.from_quantiles(ml_quantiles)
-    for n in n_obs_list:
-        if n > full_series.n_points: continue
-        short = simulate_short_arc(full_series, n)
-        reg = estimate_ols_hac(short)
-        post = bayesian_update(prior, reg)
-        
-        row = {"n_obs": n, "arc_years": float(short.times_years[-1]), "dadt_ols": reg.dadt_au_my, "dadt_post": post.mean}
-        if true_dadt is not None:
-            row["error_ols"] = abs(reg.dadt_au_my - true_dadt)
-            row["error_post"] = abs(post.mean - true_dadt)
-        results.append(row)
-    return results

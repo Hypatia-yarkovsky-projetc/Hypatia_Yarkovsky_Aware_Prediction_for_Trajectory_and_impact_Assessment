@@ -109,12 +109,22 @@ def build_residual_series(
     )
 
 def simulate_short_arc(full_series: ResidualSeries, n_obs: int) -> ResidualSeries:
-    """Simula arco corto recortando la serie completa a las primeras N observaciones."""
-    n = min(n_obs, full_series.n_points)
+    """Simula un arco corto tomando N observaciones distribuidas en el tiempo."""
+    if n_obs >= full_series.n_points:
+        return full_series
+    
+    # Índices equiespaciados para mantener la línea de base temporal
+    idx = np.linspace(0, full_series.n_points - 1, n_obs, dtype=int)
+    
     return ResidualSeries(
-        times_jd=full_series.times_jd[:n], times_years=full_series.times_years[:n],
-        a_obs=full_series.a_obs[:n], a_pred=full_series.a_pred[:n],
-        epsilon=full_series.epsilon[:n], epsilon_km=full_series.epsilon_km[:n],
-        n_points=n, epoch_start=full_series.epoch_start,
-        epoch_end=jd_to_iso(full_series.times_jd[n-1]), asteroid_id=full_series.asteroid_id,
+        times_jd=full_series.times_jd[idx],
+        times_years=full_series.times_years[idx],
+        a_obs=full_series.a_obs[idx],
+        a_pred=full_series.a_pred[idx],
+        epsilon=full_series.epsilon[idx],
+        epsilon_km=full_series.epsilon_km[idx],
+        n_points=n_obs,
+        epoch_start=full_series.epoch_start,
+        epoch_end=full_series.epoch_end,
+        asteroid_id=full_series.asteroid_id,
     )

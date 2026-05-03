@@ -109,13 +109,17 @@ def estimate_ols_hac(series: ResidualSeries, alpha: float = 0.05, n_lags: Option
         t_fit=t, trend_fit=np.asarray(model_ols.fittedvalues), residuals_fit=residuals,
     )
 
-def estimate_stl(series: ResidualSeries, alpha: float = 0.05, period: Optional[int] = None) -> RegressionResult:
-    """STL + regresión sobre tendencia."""
+def estimate_stl(
+    series: ResidualSeries,
+    alpha: float = 0.05,
+    period: Optional[int] = None,
+) -> RegressionResult:
+    """Estimación STL + regresión sobre tendencia."""
     t, eps, n = series.times_years, series.epsilon, len(series.epsilon)
-
+    
     if period is None:
-        dt_median_days = np.median(np.diff(series.times_jd))
-        period = max(2, int(round(365.25 / dt_median_days)))
+        dt_med = np.median(np.diff(series.times_jd))
+        period = max(2, int(round(365.25 / dt_med)))
 
     if n < 2 * period:
         return estimate_ols_hac(series, alpha)
@@ -123,33 +127,29 @@ def estimate_stl(series: ResidualSeries, alpha: float = 0.05, period: Optional[i
     idx = pd.RangeIndex(n)
     ts = pd.Series(eps, index=idx)
     stl_res = STL(ts, period=period, robust=True).fit()
-    trend_component = stl_res.trend.values
-
+    
     X = sm.add_constant(t)
-    model = sm.OLS(trend_component, X).fit()
+    model = sm.OLS(stl_res.trend, X).fit()
+    
+    # FIX: Uso de .iloc para acceso por posición, no por etiqueta
+    slope = float(model.params.iloc[1])
+    se_slope = float(model.bse.iloc[1])
 
-    # Acceso seguro por posición (no por label)
-    params = np.asarray(model.params)
-    bse = np.asarray(model.bse)
-    slope = float(params[1])
-    se_slope = float(bse[1])
+    ci = model.conf_int(alpha=alpha)
+    ci_lo = float(ci.iloc[1, 0])
+    ci_hi = float(ci.iloc[1, 1])
 
-    ci = np.asarray(model.conf_int(alpha=alpha))
-    ci_lo = float(ci[1, 0])
-    ci_hi = float(ci[1, 1])
-
-    stl_residuals = stl_res.resid.values
-    dw = float(durbin_watson(stl_residuals))
+    residuals = stl_res.resid
 
     return RegressionResult(
         method="stl", dadt_au_my=slope * 1e6,
         ci_lower=ci_lo * 1e6, ci_upper=ci_hi * 1e6,
         std_error=se_slope * 1e6,
         r_squared=float(model.rsquared),
-        rmse_au=float(np.sqrt(np.mean(stl_residuals**2))),
+        rmse_au=float(np.sqrt(np.mean(residuals**2))),
         aic=float(model.aic), n_points=n,
-        dw_statistic=dw,
-        t_fit=t, trend_fit=trend_component, residuals_fit=stl_residuals,
+        dw_statistic=float(durbin_watson(residuals)),
+        t_fit=t, trend_fit=stl_res.trend, residuals_fit=residuals,
     )
 
 def estimate_dadt_all_methods(series: ResidualSeries, alpha: float = 0.05) -> dict:

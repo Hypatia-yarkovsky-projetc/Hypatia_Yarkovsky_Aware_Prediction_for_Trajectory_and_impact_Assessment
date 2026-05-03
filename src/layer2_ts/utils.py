@@ -74,21 +74,33 @@ def verify_layer1_integration() -> bool:
         return False
 
 def check_residuals_quality(series) -> dict:
+    """Valida calidad de serie antes de regresion."""
     warnings, errors, eps = [], [], series.epsilon
-    if series.n_points < 5: errors.append(f"Pocos puntos: {series.n_points} (min: 5)")
-    if series.n_points < 10: warnings.append(f"Pocos puntos ({series.n_points}): IC amplio")
-    if series.times_years[-1] < 1.0: errors.append(f"Arco corto: {series.times_years[-1]:.2f} anos")
     
-    # FIX: Corrección de lógica para arrays booleanos
+    if series.n_points < 5: 
+        errors.append(f"Pocos puntos: {series.n_points} (min: 5)")
+    if series.n_points < 10: 
+        warnings.append(f"Pocos puntos ({series.n_points}): IC amplio")
+        
+    # FIX: Arco corto es esperado en experimentos de sensibilidad (N=5,10,20)
+    # Solo se considera error fatal si es < 0.2 años (~2 meses)
+    arc_years = series.times_years[-1]
+    if arc_years < 0.2:
+        errors.append(f"Arco inválido: {arc_years:.2f} años")
+    elif arc_years < 1.0:
+        warnings.append(f"Arco corto ({arc_years:.2f} años): IC amplio, válido para sensibilidad")
+        
     outliers = np.abs(eps) > 0.01
     if np.any(outliers):
         warnings.append(f"{outliers.sum()} residuos > 0.01 AU")
         
     snr = signal_to_noise_ratio(series)
-    if snr < 1.0: warnings.append(f"SNR bajo ({snr:.2f})")
-    
+    if snr < 1.0: 
+        warnings.append(f"SNR bajo ({snr:.2f})")
+        
     passed = len(errors) == 0
     for w in warnings: print(f"[HYPATIA L2] Warning: {w}")
     for e in errors: print(f"[HYPATIA L2] Error: {e}")
-    if passed and not warnings: print(f"[HYPATIA L2] Serie verificada ({series.n_points} puntos, SNR={snr:.2f})")
+    if passed and not warnings: 
+        print(f"[HYPATIA L2] Serie verificada ({series.n_points} puntos, SNR={snr:.2f})")
     return {"passed": passed, "warnings": warnings, "errors": errors, "snr": snr}

@@ -16,6 +16,13 @@ Resultado: reducción (RMSE_A - RMSE_B) / RMSE_A × 100 %
 Uso:
 python src/pipeline.py --target 99942 --n-obs 10 --years 40
 """
+import sys
+from pathlib import Path
+
+# Añadir la carpeta raíz del proyecto al PATH de Python
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+#Imports de las tres capas
 import numpy as np
 import pandas as pd
 import argparse
@@ -238,46 +245,59 @@ def run_hypatia(
         _save_result_json(result, save_results_path)
     return result
 
+# En src/pipeline.py, reemplaza run_sensitivity_experiment con:
 def run_sensitivity_experiment(
-    asteroid_id: int = 99942,
-    n_obs_list: list = [5, 10, 20, 50],
-    t_years: float = 40.0,
-    model_path: Optional[str] = None,
-    series_path: Optional[str] = None,
-    verbose: bool = True,
+    asteroid_id   : int = 99942,
+    n_obs_list    : list = [5, 10, 20, 50],
+    t_years       : float = 40.0,
+    model_path    : Optional[str] = None,
+    series_path   : Optional[str] = None,
+    verbose       : bool = True,
 ) -> pd.DataFrame:
-    """Experimento central: RMSE vs N observaciones."""
     rows = []
+    cfg = ASTEROID_CONFIGS.get(asteroid_id)
+    if cfg is None:
+        raise ValueError(f"Asteroide {asteroid_id} no configurado.")
+
     if verbose:
         print(f"\n{'═'*60}")
         print(f"  EXPERIMENTO CENTRAL: RMSE vs N observaciones")
         print(f"  Asteroide: {asteroid_id}  |  Horizonte: {t_years:.0f} años")
         print(f"{'═'*60}")
+
+    # 1. Ejecutar una sola vez para obtener baseline sin Yarkovsky
+    if verbose: print("\n  → Calculando trayectoria base (sin Yarkovsky)...")
+    base_res = run_hypatia(
+        asteroid_id=asteroid_id, n_obs=None, t_years=t_years,
+        model_path=model_path, series_csv_path=series_path,
+        run_loocv=False, verbose=False
+    )
+    rmse_sin_yark = base_res.rmse_sin_yark
+    cone_km_base  = base_res.cone_width_final_km
+
+    # 2. Iterar solo sobre N observaciones, reutilizando baseline
     for n in n_obs_list:
         if verbose: print(f"\n  → N = {n} observaciones...")
         try:
             res = run_hypatia(
-                asteroid_id=asteroid_id,
-                n_obs=n,
-                t_years=t_years,
-                model_path=model_path,
-                series_csv_path=series_path,
-                run_loocv=False,
-                verbose=False,
+                asteroid_id=asteroid_id, n_obs=n, t_years=t_years,
+                model_path=model_path, series_csv_path=series_path,
+                run_loocv=False, verbose=False
             )
             rows.append({
                 "n_obs": n,
                 "dadt_posterior": res.dadt_final,
                 "dadt_std": res.dadt_std,
-                "rmse_sin_yark": res.rmse_sin_yark,
+                "rmse_sin_yark": rmse_sin_yark,  # reutilizado
                 "rmse_hypatia": res.rmse_hypatia,
-                "reduccion_pct": res.reduccion_pct,
+                "reduccion_pct": ((rmse_sin_yark - res.rmse_hypatia) / rmse_sin_yark) * 100,
                 "cone_km": res.cone_width_final_km,
             })
             if verbose:
-                print(f"    da/dt = {res.dadt_final:+.4f} AU/My  |  Reducción = {res.reduccion_pct:.1f}%")
+                print(f"    da/dt = {res.dadt_final:+.4f} AU/My  |  Reducción = {rows[-1]['reduccion_pct']:.1f}%")
         except Exception as e:
             print(f"  [ERROR] N={n}: {e}")
+
     df = pd.DataFrame(rows)
     if verbose and len(df) > 0:
         print(f"\n{'═'*60}")

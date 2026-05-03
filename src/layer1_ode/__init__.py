@@ -1,51 +1,51 @@
 """
 layer1_ode
-Capa 1 de HYPATIA: Integrador N-cuerpos con perturbación de Yarkovsky.
-API pública del módulo:
-    from src.layer1_ode import propagate, run_validation, generate_uncertainty_cone
+Capa 1 de HYPATIA: Motor de propagación orbital N-cuerpos + Yarkovsky.
+Expone las funciones críticas para el pipeline maestro y las capas superiores.
 """
-from .integrator import propagate, propagate_from_state
-from .initial_conditions import (
-    get_initial_conditions,
-    pack_state_vector,
-    unpack_state_vector,
-)
+
+# Integrador y física
+from .integrator import propagate_from_state, generate_uncertainty_cone
 from .yarkovsky import (
     yarkovsky_acceleration,
     dadt_to_A2,
     A2_to_dadt,
     yarkovsky_order_of_magnitude,
 )
-from .moid import (
-    compute_moid_timeseries,
-    find_close_approaches,
-    generate_uncertainty_cone,
-    cone_width_at_year,
-)
-from .validation import (
-    run_validation,
-    compare_scenarios,
-    fetch_ephemeris_arc,
-    compute_position_errors,
-)
+
+# Condiciones iniciales y utilidades
+from .initial_conditions import get_initial_conditions, pack_state_vector, unpack_state_vector
 from .utils import (
-    state_to_orbital_elements,
     semi_major_axis,
-    check_energy_conservation,
+    state_to_orbital_elements,
+    au_to_km,
     jd_to_iso,
     iso_to_jd,
-    au_to_km,
-    au_to_ld,
+    check_energy_conservation,
 )
-from .constants import GM, JPL_IDS, DEFAULT_PERTURBERS, RTOL, ATOL, MAX_STEP_DAYS
+
+# Validación y MOID
+from .validation import fetch_ephemeris_arc, compare_scenarios, compute_position_errors
+from .moid import cone_width_at_year
 
 __all__ = [
-    "propagate", "propagate_from_state",
-    "get_initial_conditions", "pack_state_vector", "unpack_state_vector",
-    "yarkovsky_acceleration", "dadt_to_A2", "A2_to_dadt", "yarkovsky_order_of_magnitude",
-    "compute_moid_timeseries", "find_close_approaches", "generate_uncertainty_cone", "cone_width_at_year",
-    "run_validation", "compare_scenarios", "fetch_ephemeris_arc", "compute_position_errors",
-    "state_to_orbital_elements", "semi_major_axis", "check_energy_conservation",
-    "jd_to_iso", "iso_to_jd", "au_to_km", "au_to_ld",
-    "GM", "JPL_IDS", "DEFAULT_PERTURBERS", "RTOL", "ATOL", "MAX_STEP_DAYS"
+    "propagate_from_state",
+    "generate_uncertainty_cone",
+    "yarkovsky_acceleration",
+    "dadt_to_A2",
+    "A2_to_dadt",
+    "yarkovsky_order_of_magnitude",
+    "get_initial_conditions",
+    "pack_state_vector",
+    "unpack_state_vector",
+    "semi_major_axis",
+    "state_to_orbital_elements",
+    "au_to_km",
+    "jd_to_iso",
+    "iso_to_jd",
+    "check_energy_conservation",
+    "fetch_ephemeris_arc",
+    "compare_scenarios",
+    "compute_position_errors",
+    "cone_width_at_year",
 ]
