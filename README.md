@@ -61,7 +61,7 @@ streamlit run dashboard/app.py
 
 | Rol | Integrante |
 | :--- | :--- |
-| Desarrollador | Josue David (apellidos) |
+| Desarrollador | Josue David Morelo Castro |
 | Desarrollador | Daniel Andres Jimenez Povea |
 | Desarrollador | Carlos Manuel Toro Torres |
 
