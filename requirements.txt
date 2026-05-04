@@ -1,0 +1,26 @@
+# HYPATIA — dependencias con versiones compatibles
+# Instalar: pip install -r requirements.txt
+# ── Core científico ────────────────────────────────────────────────────────
+numpy>=1.26.0,<2.0.0
+scipy>=1.13.0,<1.14.0
+pandas>=2.2.0,<2.3.0
+# ── Astronomía y acceso a datos ───────────────────────────────────────────
+astropy>=6.0.0,<7.0.0
+astroquery>=0.4.7
+# ── Machine Learning ──────────────────────────────────────────────────────
+xgboost>=2.0.0,<2.1.0
+scikit-learn>=1.4.0,<1.5.0
+joblib>=1.4.0
+tqdm>=4.67.3
+# ── Series de tiempo y estadística ───────────────────────────────────────
+statsmodels>=0.14.0,<0.15.0
+# ── Visualización ─────────────────────────────────────────────────────────
+matplotlib>=3.8.0,<3.9.0
+plotly>=5.18.0
+streamlit>=1.35.0
+# ── HTTP y datos ──────────────────────────────────────────────────────────
+requests>=2.32.0
+# ── Seguridad ─────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+# ── Tests ────────────────────────────────────────────────────────────────
+pytest>=8.2.0

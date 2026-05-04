@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HYPATIA | Simulador Numérico de Trayectorias</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-effects">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="stars"></div>
+    </div>
+
+    <div class="app-container">
+        <main class="main-content">
+            <header class="topbar">
+                <div class="brand-horizontal">
+                    <div class="brand-icon">☄️</div>
+                    <h1>HYPATIA</h1>
+                </div>
+                <div class="search-bar glass-panel">
+                    <span class="search-icon">🔍</span>
+                    <select id="asteroid-select" class="asteroid-dropdown">
+                        <option value="99942">99942 Apophis</option>
+                        <option value="101955">101955 Bennu</option>
+                        <option value="162173">162173 Ryugu</option>
+                        <option value="65803">65803 Didymos</option>
+                        <option value="433">433 Eros</option>
+                    </select>
+                </div>
+                <div class="system-status">
+                    <div class="status-indicator online" id="api-led"></div>
+                    <span id="api-status">Conectando API NASA...</span>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- Hero Section -->
+                <section class="widget hero-widget glass-panel span-2">
+                    <div class="hero-content">
+                        <span class="tag" id="ast-tag">--</span>
+                        <h2 id="ast-name">Cargando datos...</h2>
+                        <p id="ast-desc">Selecciona un asteroide y ejecuta los cálculos para ver la simulación EDO con parámetros extraídos de JPL SBDB.</p>
+                        
+                        <button class="primary-btn" id="run-simulation-btn" disabled>Cargando API...</button>
+                    </div>
+                </section>
+
+                <!-- Parámetro Yarkovsky Widget -->
+                <section class="widget stats-widget glass-panel">
+                    <h3>Parámetro da/dt (Yarkovsky)</h3>
+                    <div class="stat-value">
+                        <span class="number" id="ast-dadt">--</span>
+                        <span class="unit">x 10⁻⁴ au/Myr</span>
+                    </div>
+                    <p class="stat-desc">Fuerza térmica resultante de la emisión anisótropa de fotones.</p>
+                </section>
+
+                <!-- ML XGBoost Widget -->
+                <section class="widget stats-widget glass-panel">
+                    <h3>Precisión Modelo XGBoost</h3>
+                    <div class="stat-value">
+                        <span class="number" id="ast-r2">--</span>
+                        <span class="unit">R²</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="ast-bar" style="width: 0%;"></div>
+                    </div>
+                    <p class="stat-desc">Coeficiente de determinación. Infiere el da/dt a partir del diámetro y albedo.</p>
+                </section>
+
+                <!-- Nuevas Estadísticas API -->
+                <section class="widget stats-widget glass-panel">
+                    <h3>Parámetros Físicos Reales (NASA)</h3>
+                    <div class="multi-stat">
+                        <div class="sub-stat">
+                            <span class="label">Diámetro</span>
+                            <span class="value" id="ast-diam">--</span>
+                        </div>
+                        <div class="sub-stat">
+                            <span class="label">Mag. Absoluta (H)</span>
+                            <span class="value" id="ast-h">--</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="widget stats-widget glass-panel">
+                    <h3>Parámetros Orbitales Reales</h3>
+                    <div class="multi-stat">
+                        <div class="sub-stat">
+                            <span class="label">Periodo</span>
+                            <span class="value" id="ast-per">--</span>
+                        </div>
+                        <div class="sub-stat">
+                            <span class="label">MOID Tierra</span>
+                            <span class="value highlight" id="ast-moid">--</span>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Chart Area Placeholder -->
+                <section class="widget chart-widget glass-panel span-full">
+                    <div class="widget-header">
+                        <h3>Simulación de Trayectoria Orbital EDO</h3>
+                        <div class="chart-actions">
+                            <button class="toggle-btn active" id="btn-2d">Vista 2D</button>
+                            <button class="toggle-btn" id="btn-3d">Vista 3D</button>
+                        </div>
+                    </div>
+                    <div class="orbit-container" id="orbit-display">
+                        <canvas id="canvas-2d"></canvas>
+                        <div id="canvas-3d" style="display: none;"></div>
+                        <div class="orbit-legend">
+                            <span class="legend-item"><span class="dot sun-dot"></span> Sol</span>
+                            <span class="legend-item"><span class="dot venus-dot"></span> Venus</span>
+                            <span class="legend-item"><span class="dot earth-dot"></span> Tierra</span>
+                            <span class="legend-item"><span class="dot mars-dot"></span> Marte</span>
+                            <span class="legend-item"><span class="dot ast-dot"></span> Asteroide</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Equation Loading Overlay -->
+    <div id="equation-overlay" class="overlay hidden">
+        <div class="overlay-content">
+            <h2 id="eq-title">Evaluando Sistema de EDOs...</h2>
+            <div class="math-container" id="math-display"></div>
+            <div class="loading-progress">
+                <div class="progress-fill" id="eq-progress"></div>
+            </div>
+            <p class="overlay-hint" id="eq-hint">--</p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
