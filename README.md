@@ -71,11 +71,11 @@ streamlit run dashboard/app.py
 
 ## Referencias principales
 
-[1] Farnocchia, D., Chesley, S. R., Vokrouhlický, D., Milani, A., Spoto, F., & Bottke, W. F. (2013). Near Earth Asteroids with measurable Yarkovsky effect. Icarus, 224(1), 1-13.
-[2] Vokrouhlický, D., Bottke, W. F., Chesley, S. R., Scheeres, D. J., & Statler, T. S. (2015). The Yarkovsky and YORP effects. Asteroids IV, University of Arizona Press, 509-531.
-[3] Montenbruck, O., & Gill, E. (2000). Satellite Orbits: Models, Methods and Applications. Springer.
-[4] Dormand, J. R., & Prince, P. J. (1980). A family of embedded Runge-Kutta formulae. Journal of Computational and Applied Mathematics, 6(1), 19-26.
-[5] Chesley, S. R., et al. (2014). Orbit and bulk density of the OSIRIS-REx target Asteroid (101955) Bennu. Icarus, 235, 5-22.
+- [1] Farnocchia, D., Chesley, S. R., Vokrouhlický, D., Milani, A., Spoto, F., & Bottke, W. F. (2013). Near Earth Asteroids with measurable Yarkovsky effect. Icarus, 224(1), 1-13.
+- [2] Vokrouhlický, D., Bottke, W. F., Chesley, S. R., Scheeres, D. J., & Statler, T. S. (2015). The Yarkovsky and YORP effects. Asteroids IV, University of Arizona Press, 509-531.
+- [3] Montenbruck, O., & Gill, E. (2000). Satellite Orbits: Models, Methods and Applications. Springer.
+- [4] Dormand, J. R., & Prince, P. J. (1980). A family of embedded Runge-Kutta formulae. Journal of Computational and Applied Mathematics, 6(1), 19-26.
+- [5] Chesley, S. R., et al. (2014). Orbit and bulk density of the OSIRIS-REx target Asteroid (101955) Bennu. Icarus, 235, 5-22.
 
 
 ---
