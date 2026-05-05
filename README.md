@@ -5,6 +5,7 @@ HYPATIA: Sistema Híbrido de Predicción de Trayectorias de Objetos Cercanos a l
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-En%20desarrollo-orange?style=flat)
+![License](https://img.shields.io/badge/LIcense-ApacheLicense%202.0-blue?style=flat)
 
 Sistema computacional híbrido que predice trayectorias de asteroides cercanos a la Tierra incorporando el **efecto Yarkovsky** — una perturbación térmica ignorada en modelos gravitacionales clásicos que acumula desvíos orbitales de miles de kilómetros en horizontes de décadas.
 
@@ -35,7 +36,7 @@ La salida del modelo ML alimenta como prior bayesiano a la capa de series de tie
 ## Instalación
 
 ```bash
-git clone https://github.com/usuario/hypatia.git
+git clone [https://github.com/usuario/hypatia.git](https://github.com/Hypatia-yarkovsky-projetc/Hypatia_Yarkovsky_Aware_Prediction_for_Trajectory_and_impact_Assessment.git)
 cd hypatia
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -56,7 +57,7 @@ streamlit run dashboard/app.py
 
 ---
 
-## Equipo
+## Desarrolladores
 
 
 | Rol | Integrante |
@@ -70,9 +71,12 @@ streamlit run dashboard/app.py
 
 ## Referencias principales
 
-- Farnocchia et al. (2013). *Near Earth Asteroids with measurable Yarkovsky effect.* Icarus, 224(1).
-- Vokrouhlický et al. (2015). *The Yarkovsky and YORP effects.* Asteroids IV, UAPress.
-- Dormand & Prince (1980). *A family of embedded Runge-Kutta formulae.* JCAM, 6(1).
+[1] Farnocchia, D., Chesley, S. R., Vokrouhlický, D., Milani, A., Spoto, F., & Bottke, W. F. (2013). Near Earth Asteroids with measurable Yarkovsky effect. Icarus, 224(1), 1-13.
+[2] Vokrouhlický, D., Bottke, W. F., Chesley, S. R., Scheeres, D. J., & Statler, T. S. (2015). The Yarkovsky and YORP effects. Asteroids IV, University of Arizona Press, 509-531.
+[3] Montenbruck, O., & Gill, E. (2000). Satellite Orbits: Models, Methods and Applications. Springer.
+[4] Dormand, J. R., & Prince, P. J. (1980). A family of embedded Runge-Kutta formulae. Journal of Computational and Applied Mathematics, 6(1), 19-26.
+[5] Chesley, S. R., et al. (2014). Orbit and bulk density of the OSIRIS-REx target Asteroid (101955) Bennu. Icarus, 235, 5-22.
+
 
 ---
 
