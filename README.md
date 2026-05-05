@@ -5,7 +5,7 @@ HYPATIA: Sistema Híbrido de Predicción de Trayectorias de Objetos Cercanos a l
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-En%20desarrollo-orange?style=flat)
-![License](https://img.shields.io/badge/LIcense-ApacheLicense%202.0-blue?style=flat)
+![License](https://img.shields.io/badge/LIcense-Apache%20License%202.0-blue?style=flat)
 
 Sistema computacional híbrido que predice trayectorias de asteroides cercanos a la Tierra incorporando el **efecto Yarkovsky** — una perturbación térmica ignorada en modelos gravitacionales clásicos que acumula desvíos orbitales de miles de kilómetros en horizontes de décadas.
 
